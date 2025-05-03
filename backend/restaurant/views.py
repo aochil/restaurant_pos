@@ -100,6 +100,12 @@ class LoginView(ObtainAuthToken):
         response = super().post(request, *args, **kwargs)
         # Look up the token object
         token = Token.objects.get(key=response.data['token'])
+        user = token.user
+
+        role = user.profile.role
         # Return just the key
-        return Response({'token': token.key})
+        return Response({
+            'token': token.key,
+            'role': role
+        })
 
