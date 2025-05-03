@@ -6,7 +6,9 @@ from .views import (
     RestaurantViewSet,
     MenuItemViewSet,
     OrderViewSet,
-    OrderItemViewSet
+    OrderItemViewSet,
+    RegisterView, 
+    LoginView
 )
 
 router = DefaultRouter()
@@ -17,5 +19,7 @@ router.register(r'order-items', OrderItemViewSet)
 
 urlpatterns = [
     # All endpoints will be under /api/
+    path('api/auth/register/', RegisterView.as_view(), name='register'),
+    path('api/auth/login/',    LoginView.as_view(),    name='login'),
     path('api/', include(router.urls)),
 ]

@@ -1,5 +1,7 @@
 from rest_framework import serializers
-from .models import Restaurant, MenuItem, Order, OrderItem
+from .models import Restaurant, MenuItem, Order, OrderItem, UserProfile
+from django.contrib.auth.models import User
+from rest_framework.authtoken.models import Token
 
 class MenuItemSerializer(serializers.ModelSerializer):
     # Now includes 'restaurant' so API consumers know which restaurant each item belongs to
@@ -24,6 +26,11 @@ class OrderItemSerializer(serializers.ModelSerializer):
         source='menu_item',
         write_only=True
     )
+    total_price = serializers.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        read_only=True,
+    )
 
     class Meta:
         model  = OrderItem
@@ -47,3 +54,31 @@ class OrderSerializer(serializers.ModelSerializer):
         order.total_amount = total
         order.save()
         return order
+
+class RegistrationSerializer(serializers.ModelSerializer):
+    role = serializers.ChoiceField(choices=UserProfile.ROLE_CHOICES, write_only=True)
+    password = serializers.CharField(write_only=True)
+
+    profile_role = serializers.CharField(source='profile.role', read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['username', 'password', 'role', 'profile_role']
+
+    def create(self, validated_data):
+        # Pull out and remove the role & password from the incoming data
+        role = validated_data.pop('role')
+        password = validated_data.pop('password')
+
+        # Create the user
+        user = User.objects.create(**validated_data)
+        user.set_password(password)
+        user.save()
+
+        # Create the profile with chosen role
+        UserProfile.objects.create(user=user, role=role)
+
+        # Create an auth token for the new user
+        Token.objects.create(user=user)
+
+        return user

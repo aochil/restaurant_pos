@@ -6,6 +6,12 @@ from .serializers import (
     OrderSerializer,
     OrderItemSerializer
 )
+from rest_framework import generics, permissions
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.authtoken.models import Token
+from rest_framework.response import Response
+from .serializers import RegistrationSerializer
+from .permissions import IsRestaurantOwner
 
 class RestaurantViewSet(viewsets.ModelViewSet):
     """
@@ -14,7 +20,7 @@ class RestaurantViewSet(viewsets.ModelViewSet):
     """
     queryset = Restaurant.objects.all()
     serializer_class = RestaurantSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated, IsRestaurantOwner]
 
     def perform_create(self, serializer):
         # When a restaurant is created, set the current user as its owner
@@ -77,3 +83,23 @@ class OrderItemViewSet(viewsets.ModelViewSet):
     queryset = OrderItem.objects.all()
     serializer_class = OrderItemSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+class RegisterView(generics.CreateAPIView):
+    """
+    POST username+password+role → create User, UserProfile, Token.
+    """
+    serializer_class = RegistrationSerializer
+    permission_classes = [permissions.AllowAny]
+
+class LoginView(ObtainAuthToken):
+    """
+    POST username+password → { "token": "abc123" }
+    """
+    def post(self, request, *args, **kwargs):
+        # Use DRF’s built-in logic to validate credentials
+        response = super().post(request, *args, **kwargs)
+        # Look up the token object
+        token = Token.objects.get(key=response.data['token'])
+        # Return just the key
+        return Response({'token': token.key})
+
