@@ -14,17 +14,13 @@ from .serializers import RegistrationSerializer
 from .permissions import IsRestaurantOwner
 
 class RestaurantViewSet(viewsets.ModelViewSet):
-    """
-    Anyone (even unauthenticated) can list & retrieve restaurants.
-    Authenticated users (owners) can also create/edit their own restaurants.
-    """
     queryset = Restaurant.objects.all()
     serializer_class = RestaurantSerializer
-    permission_classes = [permissions.IsAuthenticated, IsRestaurantOwner]
-
-    def perform_create(self, serializer):
-        # When a restaurant is created, set the current user as its owner
-        serializer.save(owner=self.request.user)
+    # Allow anyone to read, but only authenticated owners to write
+    permission_classes = [
+        permissions.IsAuthenticatedOrReadOnly,
+        IsRestaurantOwner
+    ]
 
 
 class MenuItemViewSet(viewsets.ModelViewSet):
@@ -34,7 +30,7 @@ class MenuItemViewSet(viewsets.ModelViewSet):
     """
     queryset = MenuItem.objects.all()
     serializer_class = MenuItemSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsRestaurantOwner]
 
     def get_queryset(self):
         # If you want to scope items to a specific restaurant:

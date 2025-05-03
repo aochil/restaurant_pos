@@ -1,55 +1,69 @@
-import React, { createContext, useState, useEffect } from 'react';
-import api from './api'; 
-
+import React, { createContext, useState, useEffect } from 'react'
+import api from './api'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const AuthContext = createContext({
-    token: null,
-    role: null,
-    login: async() => {},
-    register: async() => {},
-    logout: () => {},
+  token: null,
+  role: null,
+  username: null,
+  login: async () => {},
+  register: async () => {},
+  logout: () => {},
 })
 
 export const AuthProvider = ({ children }) => {
-    const [token, setToken] = useState(() => localStorage.getItem('token'));
-    const [role, setRole] = useState(() => localStorage.getItem('role'));
+  const [token, setToken]       = useState(() => localStorage.getItem('token'))
+  const [role, setRole]         = useState(() => localStorage.getItem('role'))
+  const [username, setUsername] = useState(() => localStorage.getItem('username'))
 
-    useEffect(() => {
-        if (token) {
-            localStorage.setItem('token', token);
-        } else {
-            localStorage.removeItem('token');
-        }
-    }, [token])
+  useEffect(() => {
+    token
+      ? localStorage.setItem('token', token)
+      : localStorage.removeItem('token')
+  }, [token])
 
-    useEffect(() => {
-        if (role) {
-            localStorage.setItem('role', role);
-        } else {
-            localStorage.removeItem('role');
-        }
-    }, [role])
+  useEffect(() => {
+    role
+      ? localStorage.setItem('role', role)
+      : localStorage.removeItem('role')
+  }, [role])
 
-    const login = async (username, password) => {
-        const {data} = await api.post('/auth/login/', { username, password });
-        setToken(data.token);
-        setRole(data.role);
-    }
+  useEffect(() => {
+    username
+      ? localStorage.setItem('username', username)
+      : localStorage.removeItem('username')
+  }, [username])
 
-    const register = async (username, password, userRole) => {
-        await api.post('/auth/register/', { username, password, role: userRole });
-        await login(username, password);
-    }
+  const login = async (user, pass) => {
+    const { data } = await api.post('/auth/login/', {
+      username: user,
+      password: pass
+    })
+    setToken(data.token)
+    setRole(data.role)
+    setUsername(user)
+  }
 
-    const logout = () => {
-        setToken(null);
-        setRole(null);
-    }
+  const register = async (user, pass, userRole) => {
+    await api.post('/auth/register/', {
+      username: user,
+      password: pass,
+      role:     userRole
+    })
+    await login(user, pass)
+  }
 
-    return (
-        <AuthContext.Provider value={{ token, role, login, register, logout }}>
-            {children}
-        </AuthContext.Provider>
-    )
+  const logout = () => {
+    setToken(null)
+    setRole(null)
+    setUsername(null)
+  }
+
+  return (
+    <AuthContext.Provider
+      value={{ token, role, username, login, register, logout }}
+    >
+      {children}
+    </AuthContext.Provider>
+  )
 }
