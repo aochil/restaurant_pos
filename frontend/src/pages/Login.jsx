@@ -1,27 +1,27 @@
 // src/pages/Login.jsx
 
-import React, { useState, useContext } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { AuthContext } from '../AuthContext'
+import React, { useState, useContext } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { AuthContext } from "../AuthContext";
 
 export default function Login() {
-  const navigate = useNavigate()
-  const { login } = useContext(AuthContext)
+  const navigate = useNavigate();
+  const { login } = useContext(AuthContext);
 
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError]       = useState(null)
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(null);
 
-  const handleSubmit = async e => {
-    e.preventDefault()
-    setError(null)
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
     try {
-      await login(username, password)
-      navigate('/')
+      await login(username, password);
+      navigate("/");
     } catch {
-      setError('Invalid credentials')
+      setError("Invalid credentials");
     }
-  }
+  };
 
   return (
     <div className="container mt-5" style={{ maxWidth: 400 }}>
@@ -34,7 +34,7 @@ export default function Login() {
           <input
             className="form-control"
             value={username}
-            onChange={e => setUsername(e.target.value)}
+            onChange={(e) => setUsername(e.target.value)}
             required
           />
         </div>
@@ -45,7 +45,7 @@ export default function Login() {
             type="password"
             className="form-control"
             value={password}
-            onChange={e => setPassword(e.target.value)}
+            onChange={(e) => setPassword(e.target.value)}
             required
           />
         </div>
@@ -54,6 +54,10 @@ export default function Login() {
           Log In
         </button>
       </form>
+
+      <p className="mt-3 text-center">
+          Don't have an account? <Link to="/register">Sign up here </Link>
+        </p>
     </div>
-  )
+  );
 }
