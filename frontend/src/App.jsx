@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import Restaurants from './pages/Restaurants'
 import RestaurantDetail from './pages/RestaurantDetail'
 import Register from './pages/Register'
+import Orders from './pages/Orders'
 import { AuthContext } from './AuthContext'
 import Header from './components/Header'
 

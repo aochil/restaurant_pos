@@ -7,11 +7,13 @@ from .serializers import (
     OrderItemSerializer
 )
 from rest_framework import generics, permissions
+from rest_framework.decorators import action
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from .serializers import RegistrationSerializer
 from .permissions import IsRestaurantOwner
+from .permissions import IsOrderOwnerOrRestaurantOwner
 
 class RestaurantViewSet(viewsets.ModelViewSet):
     queryset = Restaurant.objects.all()
@@ -52,7 +54,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsOrderOwnerOrRestaurantOwner]
 
     def get_queryset(self):
         user = self.request.user
@@ -65,7 +67,22 @@ class OrderViewSet(viewsets.ModelViewSet):
             ).distinct()
         # Otherwise, show only orders the user placed
         return Order.objects.filter(customer=user)
+    
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def my_orders(self, request):
+        """
+        GET /api/orders/my_orders/
+        Always returns only the orders placed by the current user.
+        """
+        qs = Order.objects.filter(customer=request.user)
+        page = self.paginate_queryset(qs)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)
+    
     def perform_create(self, serializer):
         # On order creation, record which customer placed it
         serializer.save(customer=self.request.user)

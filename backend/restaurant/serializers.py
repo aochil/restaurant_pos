@@ -39,10 +39,10 @@ class OrderItemSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     items    = OrderItemSerializer(many=True)
     customer = serializers.StringRelatedField(read_only=True)
-
+    restaurant_name = serializers.SerializerMethodField()
     class Meta:
         model  = Order
-        fields = ['id', 'customer', 'status', 'total_amount', 'created_at', 'items']
+        fields = ['id', 'customer', 'restaurant_name', 'status', 'total_amount', 'created_at', 'items']
 
     def create(self, validated_data):
         items_data = validated_data.pop('items')
@@ -54,6 +54,12 @@ class OrderSerializer(serializers.ModelSerializer):
         order.total_amount = total
         order.save()
         return order
+    
+    def get_restaurant_name(self, obj):
+        first_item = obj.items.first()
+        if first_item:
+            return first_item.menu_item.restaurant.name
+        return None
 
 class RegistrationSerializer(serializers.ModelSerializer):
     role = serializers.ChoiceField(choices=UserProfile.ROLE_CHOICES, write_only=True)
