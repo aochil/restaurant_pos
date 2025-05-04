@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useContext } from 'react'
 import api from '../api'
 import OrderCard from '../components/OrderCard'
-import { AuthContext } from '../AuthContext'
+import { AuthContext } from '../contexts/AuthContext'
 
 export default function Orders() {
   const [orders, setOrders] = useState(null)

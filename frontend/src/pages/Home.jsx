@@ -1,7 +1,7 @@
 // src/pages/Home.jsx
 
 import React, { useContext } from 'react'
-import { AuthContext }       from '../AuthContext'
+import { AuthContext }       from '../contexts/AuthContext'
 export default function Home() {
   const { role, logout } = useContext(AuthContext)
 

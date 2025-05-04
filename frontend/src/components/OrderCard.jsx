@@ -1,6 +1,6 @@
 // frontend/src/components/OrderCard.jsx
 import React, { useContext, useState } from 'react'
-import { AuthContext }              from '../AuthContext'
+import { AuthContext }              from '../contexts/AuthContext'
 import api                          from '../api'
 import { format }                   from 'date-fns'
 

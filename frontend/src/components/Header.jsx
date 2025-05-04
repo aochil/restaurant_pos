@@ -1,12 +1,14 @@
-// src/components/Header.jsx
+// frontend/src/components/Header.jsx
 import React, { useContext } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { AuthContext }       from '../AuthContext'
+import { Link, useNavigate }   from 'react-router-dom'
+import { AuthContext }         from '../contexts/AuthContext'
+import { CartContext }         from '../contexts/CartContext'
 
 export default function Header() {
   const { token, role, username, logout } = useContext(AuthContext)
-  const navigate = useNavigate()
-  const isOwner = role === 'restaurant_owner'
+  const { totalItems }                   = useContext(CartContext)
+  const navigate                         = useNavigate()
+
   const handleLogout = () => {
     logout()
     navigate('/login')
@@ -20,8 +22,23 @@ export default function Header() {
         </Link>
 
         <div className="d-flex align-items-center">
+          {token && role === "customer" && (
+            <Link
+              to="/cart"
+              className="btn btn-outline-light position-relative me-2"
+            >
+              🛒
+              {totalItems > 0 && (
+                <span
+                  className="badge bg-danger rounded-circle position-absolute"
+                  style={{ top: "-5px", right: "-10px" }}
+                >
+                  {totalItems}
+                </span>
+              )}
+            </Link>
+          )}
 
-          {/* User dropdown (or Sign In) */}
           {!token ? (
             <Link to="/login" className="btn btn-outline-light me-2">
               Sign In
@@ -35,7 +52,7 @@ export default function Header() {
                 data-bs-toggle="dropdown"
                 aria-expanded="false"
               >
-                {role === 'restaurant_owner' ? '🏬' : '🙋'} {username}
+                {role === "restaurant_owner" ? "🏬" : "🙋"} {username}
               </button>
               <ul
                 className="dropdown-menu dropdown-menu-end"
@@ -43,10 +60,12 @@ export default function Header() {
               >
                 <li>
                   <Link className="dropdown-item" to="/orders">
-                    {isOwner ? '📦 Orders' : '🛍️ My Orders'}
+                    📋 My Orders
                   </Link>
                 </li>
-                <li><hr className="dropdown-divider" /></li>
+                <li>
+                  <hr className="dropdown-divider" />
+                </li>
                 <li>
                   <button
                     className="dropdown-item text-danger"
@@ -61,5 +80,5 @@ export default function Header() {
         </div>
       </div>
     </nav>
-  )
+  );
 }
