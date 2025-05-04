@@ -1,5 +1,7 @@
 from rest_framework import serializers
-from .models import Restaurant, MenuItem, Order, OrderItem
+from .models import Restaurant, MenuItem, Order, OrderItem, UserProfile
+from django.contrib.auth.models import User
+from rest_framework.authtoken.models import Token
 
 class MenuItemSerializer(serializers.ModelSerializer):
     # Now includes 'restaurant' so API consumers know which restaurant each item belongs to
@@ -24,6 +26,11 @@ class OrderItemSerializer(serializers.ModelSerializer):
         source='menu_item',
         write_only=True
     )
+    total_price = serializers.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        read_only=True,
+    )
 
     class Meta:
         model  = OrderItem
@@ -32,10 +39,10 @@ class OrderItemSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     items    = OrderItemSerializer(many=True)
     customer = serializers.StringRelatedField(read_only=True)
-
+    restaurant_name = serializers.SerializerMethodField()
     class Meta:
         model  = Order
-        fields = ['id', 'customer', 'status', 'total_amount', 'created_at', 'items']
+        fields = ['id', 'customer', 'restaurant_name', 'status', 'total_amount', 'created_at', 'items']
 
     def create(self, validated_data):
         items_data = validated_data.pop('items')
@@ -47,3 +54,37 @@ class OrderSerializer(serializers.ModelSerializer):
         order.total_amount = total
         order.save()
         return order
+    
+    def get_restaurant_name(self, obj):
+        first_item = obj.items.first()
+        if first_item:
+            return first_item.menu_item.restaurant.name
+        return None
+
+class RegistrationSerializer(serializers.ModelSerializer):
+    role = serializers.ChoiceField(choices=UserProfile.ROLE_CHOICES, write_only=True)
+    password = serializers.CharField(write_only=True)
+
+    profile_role = serializers.CharField(source='profile.role', read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['username', 'password', 'role', 'profile_role']
+
+    def create(self, validated_data):
+        # Pull out and remove the role & password from the incoming data
+        role = validated_data.pop('role')
+        password = validated_data.pop('password')
+
+        # Create the user
+        user = User.objects.create(**validated_data)
+        user.set_password(password)
+        user.save()
+
+        # Create the profile with chosen role
+        UserProfile.objects.create(user=user, role=role)
+
+        # Create an auth token for the new user
+        Token.objects.create(user=user)
+
+        return user

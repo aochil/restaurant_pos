@@ -6,19 +6,23 @@ from .serializers import (
     OrderSerializer,
     OrderItemSerializer
 )
+from rest_framework import generics, permissions
+from rest_framework.decorators import action
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.authtoken.models import Token
+from rest_framework.response import Response
+from .serializers import RegistrationSerializer
+from .permissions import IsRestaurantOwner
+from .permissions import IsOrderOwnerOrRestaurantOwner
 
 class RestaurantViewSet(viewsets.ModelViewSet):
-    """
-    Anyone (even unauthenticated) can list & retrieve restaurants.
-    Authenticated users (owners) can also create/edit their own restaurants.
-    """
     queryset = Restaurant.objects.all()
     serializer_class = RestaurantSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-
-    def perform_create(self, serializer):
-        # When a restaurant is created, set the current user as its owner
-        serializer.save(owner=self.request.user)
+    # Allow anyone to read, but only authenticated owners to write
+    permission_classes = [
+        permissions.IsAuthenticatedOrReadOnly,
+        IsRestaurantOwner
+    ]
 
 
 class MenuItemViewSet(viewsets.ModelViewSet):
@@ -28,7 +32,7 @@ class MenuItemViewSet(viewsets.ModelViewSet):
     """
     queryset = MenuItem.objects.all()
     serializer_class = MenuItemSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsRestaurantOwner]
 
     def get_queryset(self):
         # If you want to scope items to a specific restaurant:
@@ -50,7 +54,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsOrderOwnerOrRestaurantOwner]
 
     def get_queryset(self):
         user = self.request.user
@@ -63,7 +67,22 @@ class OrderViewSet(viewsets.ModelViewSet):
             ).distinct()
         # Otherwise, show only orders the user placed
         return Order.objects.filter(customer=user)
+    
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def my_orders(self, request):
+        """
+        GET /api/orders/my_orders/
+        Always returns only the orders placed by the current user.
+        """
+        qs = Order.objects.filter(customer=request.user)
+        page = self.paginate_queryset(qs)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)
+    
     def perform_create(self, serializer):
         # On order creation, record which customer placed it
         serializer.save(customer=self.request.user)
@@ -77,3 +96,29 @@ class OrderItemViewSet(viewsets.ModelViewSet):
     queryset = OrderItem.objects.all()
     serializer_class = OrderItemSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+class RegisterView(generics.CreateAPIView):
+    """
+    POST username+password+role → create User, UserProfile, Token.
+    """
+    serializer_class = RegistrationSerializer
+    permission_classes = [permissions.AllowAny]
+
+class LoginView(ObtainAuthToken):
+    """
+    POST username+password → { "token": "abc123" }
+    """
+    def post(self, request, *args, **kwargs):
+        # Use DRF’s built-in logic to validate credentials
+        response = super().post(request, *args, **kwargs)
+        # Look up the token object
+        token = Token.objects.get(key=response.data['token'])
+        user = token.user
+
+        role = user.profile.role
+        # Return just the key
+        return Response({
+            'token': token.key,
+            'role': role
+        })
+
